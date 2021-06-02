@@ -335,7 +335,23 @@ header > h4{
   box-shadow: inset 1px 1px 2px #ddd; 
 }
 
+.spinner {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: 
+    radial-gradient(farthest-side,#aaa 94%,#0000) top/20% 20% no-repeat,
+    conic-gradient(#0000 30%,#aaa);
+  -webkit-mask: radial-gradient(farthest-side,#0000 calc(80%),#000 0);
+  animation:spinnerAnim 1s infinite linear;
+}
 
+@keyframes spinnerAnim{ 
+  100%{transform: rotate(1turn)}
+}
 
 
 /* main>section:nth-of-type(1){  background:#eff; }

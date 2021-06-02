@@ -5,6 +5,7 @@ import SearchBarList from './SearchBarList'
 
 
 const SearchBar = ({word,history,setSearchResult}) => {
+  const [loading,setLoading] = useState(false)
   const [value,setValue] = useState(word)
   const [list,setList] = useState([])
 
@@ -24,12 +25,16 @@ const SearchBar = ({word,history,setSearchResult}) => {
       history.push({pathname})
       return
     }
+    setLoading(true)
     setValue(value)
     setList([])
     fetchJSON({value,action:"define"}).then(d => {
       setSearchResult(d)
+      setLoading(false)
     })
   },100),[])
+
+  // end of Hooks
 
   const handleOnChange = ({target:{value}}) => {
     setValue(value)
@@ -61,6 +66,7 @@ const SearchBar = ({word,history,setSearchResult}) => {
       onKeyDown={handleOnKeyDown} onChange={handleOnChange}
       onFocus={handleOnFocus} onBlur={() => setList([])}/>
     <SearchBarList items={list} onSelect={fetchDefinition} />
+    <div hidden={!loading} className="spinner"></div>    
   </>)
 }
 export default SearchBar
