@@ -5,7 +5,7 @@ let remote
 if (/^https?:\/\/localhost/.test(document.URL)){
   remote = `http://localhost:3333/json/dict?`
 } else {
-  remote = `http://72.19.12.242:3333/json/dict?`
+  remote = `https://nextdawn.one:3333/json/dict?`
 }
 
 export default function ({value,action="query"}) {
