@@ -1,6 +1,6 @@
 import React from 'react'
 
-const SearchBarList = ({items, onSelect}) => {
+const SearchBarList = ({hidden,items, onSelect}) => {
   const parseListItem = (item,key) => {
     return (
       <li onMouseDown={e => e.preventDefault()} onClick={() => onSelect(item)}
@@ -8,7 +8,7 @@ const SearchBarList = ({items, onSelect}) => {
     )
   }
   return (
-    <ul>
+    <ul hidden={hidden}>
       {items.map(parseListItem)} 
     </ul>
   )
