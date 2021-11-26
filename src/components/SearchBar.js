@@ -1,72 +1,87 @@
-import React, {useState, useEffect, useCallback} from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import fetchJSON from './fetchJSON.js'
-import {debounce} from './utils.js'
+import useDebounce from './hooks/useDebounce'
+import useKeyPress from './hooks/useKeyPress'
 import SearchBarList from './SearchBarList'
 
-
-const SearchBar = ({word,history,setSearchResult}) => {
-  const [loading,setLoading] = useState(false)
-  const [value,setValue] = useState(word)
-  const [list,setList] = useState([])
+const SearchBar = ({ word = "", history, setSearchResult }) => {
+  const [loading, setLoading] = useState(false)
+  const [inputValue, setInputValue] = useState(word)
+  const debouncedInputValue = useDebounce(inputValue, 300)
+  const [list, setList] = useState([])
+  const [focus, setFocus] = useState(false)
+  const inputRef = useRef()
+  const enterKey = useKeyPress('Enter')
+  const escKey = useKeyPress('Escape')
+  const downKey = useKeyPress('ArrowDown')
+  const anyKey = useKeyPress(({ ctrlKey, altKey, key }) => {
+    return !ctrlKey && !altKey && key.match(/^[a-z]$/)
+  })
 
   useEffect(() => {
-    if (value.length>0){
-      fetchDefinition(value)
-    }
+    fetchDefinition(debouncedInputValue)
   }, [])
-  const fetchCandidates = useCallback(debounce((value) => {
-    if (value.length===0){return}
-    fetchJSON({value}).then(setList)
-  },200),[])
 
-  const fetchDefinition = useCallback(debounce((value) => {
-    const pathname = "/" + value
-    if (history.location.pathname !== pathname){
-      history.push({pathname})
+  useEffect(() => {
+    if (!focus || !enterKey || list.length === 0) { return }
+    const candidate = list[0].toLowerCase()
+    //complete the input from first list item
+    if (candidate.includes(inputValue.toLowerCase())
+        || inputValue.toLowerCase().includes(candidate)) {
+      selectCandidate(list[0])
+    }
+  }, [enterKey])
+
+  useEffect(() => {
+    if (!focus || !downKey || list.length === 0) { return }
+    setInputValue(list[0])
+  }, [downKey])
+
+  useEffect(() => {
+    if (!focus || !escKey) { return }
+    setInputValue("")
+  }, [escKey])
+  
+  //regain focus if anykey is pressed
+  useEffect(() => {
+    if (focus || !anyKey) { return }
+    inputRef.current.focus()
+    setInputValue(anyKey)
+  }, [anyKey])
+
+  //update candidate list
+  useEffect(() => {
+    debouncedInputValue.length > 0
+      ? fetchJSON({ value: debouncedInputValue }).then(setList)
+      : setList([])
+  }, [debouncedInputValue])
+
+  const fetchDefinition = useCallback((word) => {
+    if (word.length == 0) { return }
+    const pathname = "/" + word
+    if (history.location.pathname !== pathname) {
+      history.push({ pathname })
       return
     }
+    inputRef.current.blur()
     setLoading(true)
-    setValue(value)
-    setList([])
-    fetchJSON({value,action:"define"}).then(d => {
+    fetchJSON({ value: word, action: "define" }).then(d => {
       setSearchResult(d)
       setLoading(false)
     })
-  },100),[])
+  }, [])
 
-  // end of Hooks
-
-  const handleOnChange = ({target:{value}}) => {
-    setValue(value)
-    fetchCandidates(value)
-    if (value.length === 0){ 
-      setList([])
-    }
-  }
-  const handleOnKeyDown = ({key}) => {
-    if (key !== "Enter") { return }
-    key = value
-    if (list[0]){
-      key = list[0]
-    } else {
-      //cancel previous debounced request
-      fetchCandidates("")
-    }
-    fetchDefinition(key)
-  }
-
-  const handleOnFocus = () => {
-    if (value.length>0 && list.length===0){
-      fetchCandidates(value)
-    }
-  }
+  const selectCandidate = useCallback((value) => {
+    setInputValue(value)
+    fetchDefinition(value)
+  }, [])
 
   return (<>
-    <input type="text" placeholder="Search" value={value}
-      onKeyDown={handleOnKeyDown} onChange={handleOnChange}
-      onFocus={handleOnFocus} onBlur={() => setList([])}/>
-    <SearchBarList items={list} onSelect={fetchDefinition} />
-    <div hidden={!loading} className="spinner"></div>    
+    <input ref={inputRef} type="text" placeholder="Search" value={inputValue}
+      onChange={e => setInputValue(e.target.value)}
+      onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} />
+    <SearchBarList hidden={!focus} items={list} onSelect={selectCandidate} />
+    <div hidden={!loading} className="spinner"></div>
   </>)
 }
 export default SearchBar
